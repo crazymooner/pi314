@@ -26,7 +26,7 @@ rootLoggerInitialized = False
 
 log_format = "%(asctime)s %(name)s [%(levelname)s] %(message)s"
 level = logging.INFO
-file_log = None  # File name
+file_log = "systemLog"  # File name
 console_log = True
 
 

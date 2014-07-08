@@ -3,8 +3,9 @@ from pi.ibHelper.barfeed import RealTimeBar
 from datetime import datetime
 from MdApi import *
 from pi import CONSTANTS
+from pyalgotrade import logger
 
-
+logger = logger.getLogger("ctpClient")
 
 class Quote(CThostFtdcMdSpi):
     def __init__(self, mdapi, broker_id, user_id, password):
@@ -28,7 +29,7 @@ class Quote(CThostFtdcMdSpi):
         return super
 
     def OnFrontConnected(self):
-        print "OnFrontConnected"
+        logger.info("OnFrontConnected")
         f = CThostFtdcReqUserLoginField()
         f.BrokerID = self.__broker_id
         f.UserUD = self.__user_id
@@ -37,20 +38,31 @@ class Quote(CThostFtdcMdSpi):
         self.__reqNum = self.__reqNum + 1
 
     def OnFrontDisconnected(self, *args):
-        print "OnFrontDisconnectet"
-        print args
-        print "OnFrontDisconnectet End"
+        logger.info("OnFrontDisconnectet")
+        logger.info("error code", args[0])
+        f = CThostFtdcReqUserLoginField()
+        f.BrokerID = self.__broker_id
+        f.UserUD = self.__user_id
+        f.Password = self.__password
+        self.__md.ReqUserLogin(f, self.__reqNum)
+        self.__reqNum = self.__reqNum + 1
+        logger.info("OnFrontDisconnectet End")
 
     def OnHeartBeatWarning(self, *args):
         print "OnHeartBeatWarning"
-        print args
+        print "time lapse ", args[0]
         print "OnHeartBeatWarning End"
 
     def OnRspUserLogin(self, *args):
-        print "OnRspUserLogin"
-        print self.__contactIDs
-        self.__md.SubscribeMarketData(self.__contactIDs, len(self.__contactIDs))
-        print "OnRspUserLogin End"
+        logger.info("OnRspUserLogin")
+        if args:
+            loginField = args[0]
+            logger.info(loginField.TradingDay)
+            logger.info(loginField.LoginTime)
+            #construct contract ID
+            date = datetime.strptime(loginField.TradingDay, "%Y%m%d")
+            self.__md.SubscribeMarketData(self.__contactIDs, len(self.__contactIDs))
+            logger.info("OnRspUserLogin End")
 
     def OnRspUserLogout(self, *args):
         print "OnRspUserLogout"
@@ -63,26 +75,30 @@ class Quote(CThostFtdcMdSpi):
         print "OnRspError End"
 
     def OnRspSubMarketData(self, *args):
-        print "OnRspSubMarketData"
-        print args
-        print "OnRspSubMarketData End"
+        logger.info("OnRspSubMarketData")
+        if args:
+            rspInfoField = args[1]
+            logger.info("Subscribe Instrument " + args[0].InstrumentID)
+            logger.info("errorID " + str(rspInfoField.ErrorID))
+            logger.info("errorMsg " + str(rspInfoField.ErrorMsg))
+        logger.info("OnRspSubMarketData End")
 
     def OnRspUnSubMarketData(self, *args):
-        print "OnRspUnSubMarketData"
-        print args
-        print "OnRspUnSubMarketData End"
+        logger.info("OnRspUnSubMarketData")
+        if args:
+            rspInfoField = args[1]
+            logger.info("Subscribe Instrument " + args[0].InstrumentID)
+            logger.info("errorID " + str(rspInfoField.ErrorID))
+            logger.info("errorMsg " + str(rspInfoField.ErrorMsg))
+        logger.info("OnRspUnSubMarketData End")
 
     def OnRtnDepthMarketData(self, *args):
-        print "OnRtnDepthMarketData"
-        print "id: ", args[0].InstrumentID
-        print "LastPrice: ", args[0].LastPrice
-        print "TradingDay: ", args[0].TradingDay
-        print "UpdateTime: ", args[0].UpdateTime
-        print "OpenPrice: ", args[0].OpenPrice
-        print "HighestPrice: ", args[0].HighestPrice
-        print "LowestPrice: ", args[0].LowestPrice
-        print "Volume: ", args[0].Volume
-        print "ClosePrice: ", args[0].ClosePrice
+        logger.info("OnRtnDepthMarketData")
+        logger.info("id: "+args[0].InstrumentID)
+        logger.info("TradingDay: " + args[0].TradingDay)
+        logger.info("UpdateTime: " + args[0].UpdateTime)
+        logger.info("LastPrice: " + str(args[0].LastPrice))
+        logger.info("Volume: " + str(args[0].Volume))
         if self.__insertIntoMysql:
             if self.__mysqlCon == None:
                 self.__mysqlCon = client.mysqlConnection(CONSTANTS.HOST,
@@ -96,8 +112,7 @@ class Quote(CThostFtdcMdSpi):
                             RealTimeBar(dateStr,
                                         args[0].LastPrice,
                                         args[0].Volume))
-            #self.__mysqlCon.commit()
-        pass
+        logger.info("OnRtnDepthMarketData End")
 
 
 class MdApiClient:
