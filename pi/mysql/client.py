@@ -62,11 +62,12 @@ class mysqlConnection:
         self.__cur = self.con.cursor()
 
     def addBar(self, symbol, bar):
-        string = ("INSERT INTO `ptrading`.`DATA` (`symbol`, `date`, `open`, `close`, `high`, `low`, `volumn`)" + 
+        string = ("INSERT INTO data (`symbol`, `date`, `open`, `close`, `high`, `low`, `volume`) " + 
                   "VALUES ('{0:s}', '{1:%Y-%m-%d %H:%M:%S}', '{2:f}', '{2:f}', '{2:f}', '{2:f}', '{3:f}')")
         queryStr = string.format(symbol, bar.getDateTime(), bar.getClose(), bar.getVolume())
         print queryStr
         self.__cur.execute(queryStr)
+        self.con.commit()
 
     def addFromCSVFile(self, filename, header=True):
         with open(filename, 'rb') as csvfile:

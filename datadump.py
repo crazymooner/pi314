@@ -18,9 +18,6 @@ class Quote(CThostFtdcMdSpi):
 		self.contactIDs = []
 		self.filename = "output"
 
-	def getSuper():
-		return super
-
 	def OnFrontConnected(self):
 		print "OnFrontConnected"
 		f = CThostFtdcReqUserLoginField()
