@@ -7,13 +7,13 @@ import MySQLdb
 import csv
 from pi.ibHelper.barfeed import RealTimeBar
 from optparse import OptionParser
+from pi import CONSTANTS
 
 
 def addBarIntoDB(cur, symbol, bar):
-    string = ("INSERT INTO `ptrading`.`DATA` (`symbol`, `date`, `open`, `close`, `high`, `low`, `volumn`)" + 
+    string = ("INSERT INTO `pi314`.`data` (`symbol`, `date`, `open`, `close`, `high`, `low`, `volume`)" + 
               "VALUES ('{0:s}', '{1:%Y-%m-%d %H:%M:%S}', '{2:f}', '{2:f}', '{2:f}', '{2:f}', '{3:f}')")
     queryStr = string.format(symbol, bar.getDateTime(), bar.getClose() ,bar.getVolume())
-    print queryStr
     cur.execute(queryStr)
 
 
@@ -41,15 +41,23 @@ def utf_8_encoder(unicode_csv_data):
 
 
 def dumpFromFile(options):
-    con = MySQLdb.Connect('localhost', 'ptrading', 'igmgm', 'ptrading')
+    con = MySQLdb.Connect(CONSTANTS.HOST,
+                          CONSTANTS.USERNAME,
+                          CONSTANTS.PASSWORD,
+                          CONSTANTS.DATABASE)
     cur = con.cursor()
     filename = options.file
+    count = 0
     with open(filename, 'rb') as csvfile:
         reader = csv.reader(csvfile)
         next(reader, None)  # skip the header
         for row in reader:
+            count = count + 1
             addBarIntoDB(cur, row[1], RealTimeBar(row[2], row[3], row[7]))
+            if count%1000 == 0:
+                print "dump ",count," lines"
     con.commit()
+    print "dump ",count," lines in DB"
 
 
 if __name__ == '__main__':
