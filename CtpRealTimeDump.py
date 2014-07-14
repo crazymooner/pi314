@@ -13,7 +13,7 @@ def main():
     mdclient.addSymbol("IF1502")
     mdclient.addSymbol("IF1503")
     mdclient.addSymbol("IF1504")
-    mdclient.dumpToMysql(False)
+    mdclient.dumpToMysql(True)
     mdclient.run()
 
 if __name__ == "__main__":

@@ -39,13 +39,7 @@ class Quote(CThostFtdcMdSpi):
 
     def OnFrontDisconnected(self, *args):
         logger.info("OnFrontDisconnectet")
-        logger.info("error code", args[0])
-        f = CThostFtdcReqUserLoginField()
-        f.BrokerID = self.__broker_id
-        f.UserUD = self.__user_id
-        f.Password = self.__password
-        self.__md.ReqUserLogin(f, self.__reqNum)
-        self.__reqNum = self.__reqNum + 1
+        logger.info("error code " + str(args[0]))
         logger.info("OnFrontDisconnectet End")
 
     def OnHeartBeatWarning(self, *args):
