@@ -1,5 +1,9 @@
 from pi.ctp.ctpClient import MdApiClient
 from optparse import OptionParser
+from datetime import datetime, date, time, timedelta
+from time import sleep
+from apscheduler.scheduler import Scheduler
+import atexit
 
 def get_options():
     parser = OptionParser()
@@ -9,8 +13,8 @@ def get_options():
     opts, args = parser.parse_args()
     return opts
 
-def main(options):
-    print "start"
+def dataDump(options):
+    print "start, dump ", options.dump
     mdclient = MdApiClient()
     mdclient.addSymbol("IF1407")
     mdclient.addSymbol("IF1408")
@@ -25,5 +29,23 @@ def main(options):
     mdclient.dumpToMysql(options.dump)
     mdclient.run()
 
+def main(options):
+    d = date.today()
+    t = time(16,30)
+    startDate = datetime.combine(d,t)
+    if (datetime.now() - startDate) > timedelta(seconds=1):
+        startDate = startDate + timedelta(days=1)
+        
+    print "dump ", options.dump
+    sched = Scheduler()
+    sched.start()
+    sched.add_interval_job(dataDump, days=1, start_date=startDate.strftime("%Y-%m-%d %H:%M:%S"), args=[options])
+    sched.print_jobs()
+    while True:
+        sleep(60*10)
+        print "."
+    atexit.register(lambda: sched.shutdown(wait=True))
+    
+    
 if __name__ == "__main__":
     main(get_options())

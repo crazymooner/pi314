@@ -1,6 +1,6 @@
 from pi.mysql import client
 from pi.ibHelper.barfeed import RealTimeBar
-from datetime import datetime
+from datetime import datetime, timedelta
 from MdApi import *
 from pi import CONSTANTS
 from pyalgotrade import logger
@@ -18,9 +18,19 @@ class Quote(CThostFtdcMdSpi):
         self.__user_id = user_id
         self.__password = password
         self.__mysqlCon = None
+        self.__starttime = datetime.now()
     
     def isDumpToMysql(self, dump=True):
         self.__insertIntoMysql = dump
+
+    def stopClient(self):
+        logger.info("stopClient")
+        f = CThostFtdcUserLogoutField()
+        f.BrokerID = self.__broker_id
+        f.UserID = self.__user_id
+        self.__md.ReqUserLogout(f, self.__reqNum)
+        self.__reqNum = self.__reqNum + 1
+        self.__md.Release()
 
     def addSymbol(self, symbol):
         self.__contactIDs.append(symbol)
@@ -36,10 +46,14 @@ class Quote(CThostFtdcMdSpi):
         f.Password = self.__password
         self.__md.ReqUserLogin(f, self.__reqNum)
         self.__reqNum = self.__reqNum + 1
+        if (datetime.now() - self.__starttime) > timedelta(seconds=60*60*10):
+            self.stopClient()
 
     def OnFrontDisconnected(self, *args):
         logger.info("OnFrontDisconnectet")
         logger.info("error code " + str(args[0]))
+        if (datetime.now() - self.__starttime) > timedelta(seconds=60*60*10):
+            self.stopClient()
         logger.info("OnFrontDisconnectet End")
 
     def OnHeartBeatWarning(self, *args):
@@ -112,6 +126,7 @@ class Quote(CThostFtdcMdSpi):
 class MdApiClient:
     def __init__(self, front_addr="tcp://ctp1-md5.citicsf.com:41213",
                  broker_id="1017", user_id="00000071", password="123456"):
+        self.__starttime = datetime.now()
         self.__md = CThostFtdcMdApi_CreateFtdcMdApi("./qlog")
         self.__front_addr = front_addr
         self.__broker_id = broker_id
