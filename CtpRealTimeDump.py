@@ -1,6 +1,15 @@
 from pi.ctp.ctpClient import MdApiClient
+from optparse import OptionParser
 
-def main():
+def get_options():
+    parser = OptionParser()
+    add = parser.add_option
+    add('-d', '--dumpToMysql', dest='dump', default=False, action='store_true',
+        help='dump data to MySQL')
+    opts, args = parser.parse_args()
+    return opts
+
+def main(options):
     print "start"
     mdclient = MdApiClient()
     mdclient.addSymbol("IF1407")
@@ -13,8 +22,8 @@ def main():
     mdclient.addSymbol("IF1502")
     mdclient.addSymbol("IF1503")
     mdclient.addSymbol("IF1504")
-    mdclient.dumpToMysql(True)
+    mdclient.dumpToMysql(options.dump)
     mdclient.run()
 
 if __name__ == "__main__":
-    main()
+    main(get_options())
