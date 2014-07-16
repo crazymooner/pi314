@@ -55,6 +55,7 @@ def dumpFromFile(options):
             count = count + 1
             addBarIntoDB(cur, row[1], RealTimeBar(row[2], row[3], row[7]))
             if count%1000 == 0:
+                con.commit()
                 print "dump ",count," lines"
     con.commit()
     print "dump ",count," lines in DB"
