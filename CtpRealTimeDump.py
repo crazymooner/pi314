@@ -3,6 +3,7 @@ from optparse import OptionParser
 from datetime import datetime, date, time, timedelta
 from time import sleep
 from apscheduler.scheduler import Scheduler
+from dateutil import tz
 import atexit
 
 def get_options():
@@ -31,8 +32,13 @@ def dataDump(options):
 
 def main(options):
     d = date.today()
-    t = time(16,30)
+    t = time(00,30)
     startDate = datetime.combine(d,t)
+    startDate = startDate.replace(tzinfo=tz.tzutc())
+    startDate = startDate.astimezone(tz.tzlocal())
+    timeStr = startDate.strftime("%Y-%m-%d %H:%M:%S")
+    print timeStr
+    startDate = datetime.strptime(timeStr, "%Y-%m-%d %H:%M:%S")
     if (datetime.now() - startDate) > timedelta(seconds=1):
         startDate = startDate + timedelta(days=1)
         
