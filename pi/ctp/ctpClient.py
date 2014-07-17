@@ -25,12 +25,13 @@ class Quote(CThostFtdcMdSpi):
 
     def stopClient(self):
         logger.info("stopClient")
-        f = CThostFtdcUserLogoutField()
-        f.BrokerID = self.__broker_id
-        f.UserID = self.__user_id
-        self.__md.ReqUserLogout(f, self.__reqNum)
-        self.__reqNum = self.__reqNum + 1
+        logger.info(datetime.now())
         self.__md.Release()
+#         f = CThostFtdcUserLogoutField()
+#         f.BrokerID = self.__broker_id
+#         f.UserID = self.__user_id
+#         self.__md.ReqUserLogout(f, self.__reqNum)
+#         self.__reqNum = self.__reqNum + 1
 
     def addSymbol(self, symbol):
         self.__contactIDs.append(symbol)
@@ -74,7 +75,7 @@ class Quote(CThostFtdcMdSpi):
 
     def OnRspUserLogout(self, *args):
         print "OnRspUserLogout"
-        print args
+        self.__md.Release()
         print "OnRspUserLogout End"
 
     def OnRspError(self, *args):
