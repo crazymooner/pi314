@@ -1,7 +1,7 @@
 from pi.mysql import client
 from pi.ibHelper.barfeed import RealTimeBar
 from datetime import datetime, timedelta
-from MdApi import *
+from MdApi.MdApi import *
 from pi import CONSTANTS
 from pyalgotrade import logger
 
