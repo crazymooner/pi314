@@ -13,15 +13,20 @@ class Quote(CThostFtdcMdSpi):
         self.__reqNum = 0
         self.__contactIDs = []
         self.__insertIntoMysql = False
+        self.__dumpToFile = True
         self.__md = mdapi
         self.__broker_id = broker_id
         self.__user_id = user_id
         self.__password = password
         self.__mysqlCon = None
         self.__starttime = datetime.now()
-    
+        self.__file = None
+
     def isDumpToMysql(self, dump=True):
         self.__insertIntoMysql = dump
+
+    def isDumpToFile(self, dump=True):
+        self.__dumpToFile = dump
 
     def stopClient(self):
         logger.info("stopClient")
@@ -101,6 +106,36 @@ class Quote(CThostFtdcMdSpi):
             logger.info("errorMsg " + str(rspInfoField.ErrorMsg))
         logger.info("OnRspUnSubMarketData End")
 
+    def dumpToFile(self, row):
+        if self.__dumpToFile:
+            #first time
+            if self.__file == None:
+                filename = datetime.utcnow().strftime("%Y-%m-%d")
+                filename = "~/Dropbox/dailyDate/" + filename + ".csv"
+                self.__file = open(filename, 'w')
+                header = ("TradingDay, InstrumentID, ExchangeID, ExchangeInstID, LastPrice, " + 
+                          "PreSettlementPrice, PreClosePrice, PreOpenInterest, OpenPrice, " +
+                          "HighestPrice, LowestPrice, Volume, Turnover, OpenInterest, ClosePrice, " +
+                          "SettlementPrice, UpperLimitPrice, LowerLimitPrice, PreDelta, CurrDelta, " +
+                          "UpdateTime, UpdateMillisec, BidPrice1, BidVolume1, AskPrice1, AskVolume1 " +
+                          "BidPrice2, BidVolume2, AskPrice2, AskVolume2, BidPrice3, BidVolume3, " +
+                          "AskPrice3, AskVolume3, BidPrice4, BidVolume4, AskPrice4, AskVolume4, " +
+                          "BidPrice5, BidVolume5, AskPrice5, AskVolume5, AveragePrice, ActionDay")
+                self.__file.writelines(header);
+        row = CThostFtdcDepthMarketDataField()
+        fields = [row.TradingDay, str(row.InstrumentId), str(row.ExchangeID), str(row.ExchangeInstID), str(row.LastPrice)]
+        fields.extend([str(row.PreSettlementPrice), str(row.PreClosePrice), str(row.PreOpenInterest), str(row.OpenPrice)])
+        fields.extend([str(row.HighestPrice), str(row.LowestPrice), str(row.Volume), str(row.Turnover), str(row.OpenInterest), str(row.ClosePrice)])
+        fields.extend([str(row.SettlementPrice), str(row.UpperLimitPrice), str(row.LowerLimitPrice), str(row.PreDelta), str(row.CurrDelta)])
+        fields.extend([row.UpdateTime, str(row.UpdateMillisec)])
+        fields.extend([str(row.BidPrice1), str(row.BidVolume1), str(row.AskPrice1), str(row.AskVolume1)])
+        fields.extend([str(row.BidPrice2), str(row.BidVolume2), str(row.AskPrice2), str(row.AskVolume2)])
+        fields.extend([str(row.BidPrice3), str(row.BidVolume3), str(row.AskPrice3), str(row.AskVolume3)])
+        fields.extend([str(row.BidPrice4), str(row.BidVolume4), str(row.AskPrice4), str(row.AskVolume4)])
+        fields.extend([str(row.BidPrice5), str(row.BidVolume5), str(row.AskPrice5), str(row.AskVolume5)])
+        fields.extend([str(row.AveragePrice), row.ActionDay])
+        self.__file.writelines(','.join(fields))
+
     def OnRtnDepthMarketData(self, *args):
         logger.info("OnRtnDepthMarketData")
         logger.info("id: "+args[0].InstrumentID)
@@ -121,6 +156,10 @@ class Quote(CThostFtdcMdSpi):
                             RealTimeBar(dateStr,
                                         args[0].LastPrice,
                                         args[0].Volume))
+        
+
+            
+            
         logger.info("OnRtnDepthMarketData End")
 
 
