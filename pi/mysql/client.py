@@ -91,7 +91,7 @@ class mysqlConnection:
             for row in reader:
                 self.addBar(row[1], RealTimeBar(row[2], row[3], row[7]))
 
-    def dailyupdate(self, freq, filename):
+    def dailyupdate(self, freq, filename, yesterday):
         if freq == 86400:
             final_table = "1day_data"
         elif freq == 1800:
@@ -99,17 +99,18 @@ class mysqlConnection:
         elif freq == 300:
             final_table = "5mins_data"
         start_time = datetime.now()
-        last_updated_date_qry_text = ("""SELECT max(date(date)) from data""")
-        self.__cur.execute(last_updated_date_qry_text)
-        last_updated_date = self.__cur.fetchone()
-        if len(last_updated_date) < 1:
-            print "no last updated date found!"
-            return
+        #last_updated_date_qry_text = ("""SELECT max(date(date)) from data""")
+        #self.__cur.execute(last_updated_date_qry_text)
+        #last_updated_date = self.__cur.fetchone()
+        #if len(last_updated_date) < 1:
+        #    print "no last updated date found!"
+        #    return
         
-        last_full_date = datetime.strptime(last_updated_date[0], "%Y-%m-%d") - timedelta(1)
-        last_full_date = last_full_date.strftime("%Y-%m-%d")
+        
+        #last_full_date = datetime.strptime(last_updated_date[0], "%Y-%m-%d") - timedelta(1)
+        #last_full_date = last_full_date.strftime("%Y-%m-%d")
 
-        cleanup_qry_text = ("""DELETE FROM %s WHERE date(date) >= '%s'""" % (final_table, last_full_date))
+        cleanup_qry_text = ("""DELETE FROM %s WHERE date(date) = '%s'""" % (final_table, yesterday))
         print cleanup_qry_text
         self.__cur.execute(cleanup_qry_text)
 
@@ -119,19 +120,19 @@ class mysqlConnection:
                                 from (select data.symbol symbol,from_unixtime((floor((unix_timestamp(data.date) / %i)) * %i)) new_date, 
                                         max(data.high) high, min(data.low) low, max(data.date) max_ts, min(data.date) min_ts, 
                                         avg(data.volume) volume 
-                                        from data where date(date) >= '%s' group by 1,2) t0 
+                                        from data where date(date) = '%s' group by 1,2) t0 
                                 join 
-                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) >= '%s' 
+                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) = '%s' 
                                     group by 1,2) t1 
                                 on t0.symbol = t1.symbol and t0.max_ts = t1.date 
                                 join 
-                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) >= '%s' 
+                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) = '%s' 
                                     group by 1,2) t2 
                                 on t0.symbol = t2.symbol and t0.min_ts = t2.date group by 1,2""" 
-                                % (final_table, freq, freq, last_full_date, last_full_date, last_full_date))
+                                % (final_table, freq, freq, yesterday, yesterday, yesterday))
         self.__cur.execute(insert_qry_text)
         print insert_qry_text
         self.con.commit()
         text_file = open(filename, "a")
-        text_file.writelines("Job %s started at: %s, completed at: %s with last_full_date: %s \n" % (final_table, start_time, datetime.now() , last_full_date))
+        text_file.writelines("Job %s started at: %s, completed at: %s with last_full_date: %s \n" % (final_table, start_time, datetime.now() , yesterday))
         text_file.close()

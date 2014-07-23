@@ -14,6 +14,8 @@ def get_options():
         help='filename')
     parser.add_option('-l', '--log', dest='logFilename', action='store',
         help='logFilename')
+    parser.add_option('-t', '--datetime', dest='datetime', action='store',
+        help='datetime')
     parser.add_option('-d', '--dailyETL', dest='dailyETL', default=False, action='store_true',
                       help='Dump from Dropbox file to DB')
     parser.add_option('-v', '--dailyViewETL', dest='dailyViewETL', default=False, action='store_true',
@@ -32,9 +34,9 @@ def dailyEtl(options):
 
 def dailyViewEtl(options):
     con = mysqlConnection()
-    con.dailyupdate(86400, options.logFilename)
-    con.dailyupdate(1800, options.logFilename)
-    con.dailyupdate(300, options.logFilename)
+    con.dailyupdate(86400, options.logFilename, options.datetime)
+    con.dailyupdate(1800, options.logFilename, options.datetime)
+    con.dailyupdate(300, options.logFilename, options.datetime)
     print "All ETLs DONE!!!" 
 
 if __name__ == '__main__':
