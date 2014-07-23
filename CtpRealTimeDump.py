@@ -3,14 +3,15 @@ from optparse import OptionParser
 
 def get_options():
     parser = OptionParser()
-    add = parser.add_option
-    add('-d', '--dumpToMysql', dest='dump', default=False, action='store_true',
+    parser.add_option('-d', '--dumpToMysql', dest='dump', default=False, action='store_true',
         help='dump data to MySQL')
+    parser.add_option('-f', '--dumpToFile', dest='file', default=True, action='store_true',
+                      help='dump date to file')
     opts, args = parser.parse_args()
     return opts
 
 def dataDump(options):
-    print "start, dump ", options.dump
+    print "start dump", "Mysql ", options.dump, "File ", options.file
     mdclient = MdApiClient()
     mdclient.addSymbol("IF1407")
     mdclient.addSymbol("IF1408")

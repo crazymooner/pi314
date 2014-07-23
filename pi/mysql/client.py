@@ -66,7 +66,11 @@ if __name__ == '__main__':
 
 
 class mysqlConnection:
-    def __init__(self, host, username, password, database):
+    def __init__(self, 
+                 host=CONSTANTS.HOST, 
+                 username=CONSTANTS.USERNAME, 
+                 password=CONSTANTS.PASSWORD, 
+                 database=CONSTANTS.DATABASE):
         self.con = MySQLdb.Connect(host, username, password, database)
         self.__cur = self.con.cursor()
 

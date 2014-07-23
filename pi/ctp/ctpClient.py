@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from MdApi.MdApi import *
 from pi import CONSTANTS
 from pyalgotrade import logger
+import sys
 
 logger = logger.getLogger("ctpClient")
 
@@ -31,6 +32,7 @@ class Quote(CThostFtdcMdSpi):
     def stopClient(self):
         logger.info("stopClient")
         logger.info(datetime.now())
+        self.__file.close()
         self.__md.Release()
 #         f = CThostFtdcUserLogoutField()
 #         f.BrokerID = self.__broker_id
@@ -110,39 +112,48 @@ class Quote(CThostFtdcMdSpi):
         if self.__dumpToFile:
             #first time
             if self.__file == None:
-                filename = datetime.utcnow().strftime("%Y-%m-%d")
-                filename = "~/Dropbox/dailyDate/" + filename + ".csv"
+                filename = datetime.now().strftime("%Y-%m-%d")
+                filename = "/home/pi314/Dropbox/daily_data/" + filename + ".csv"
+                logger.info("Create file " + filename)
                 self.__file = open(filename, 'w')
-                header = ("TradingDay, InstrumentID, ExchangeID, ExchangeInstID, LastPrice, " + 
-                          "PreSettlementPrice, PreClosePrice, PreOpenInterest, OpenPrice, " +
-                          "HighestPrice, LowestPrice, Volume, Turnover, OpenInterest, ClosePrice, " +
-                          "SettlementPrice, UpperLimitPrice, LowerLimitPrice, PreDelta, CurrDelta, " +
-                          "UpdateTime, UpdateMillisec, BidPrice1, BidVolume1, AskPrice1, AskVolume1 " +
-                          "BidPrice2, BidVolume2, AskPrice2, AskVolume2, BidPrice3, BidVolume3, " +
-                          "AskPrice3, AskVolume3, BidPrice4, BidVolume4, AskPrice4, AskVolume4, " +
-                          "BidPrice5, BidVolume5, AskPrice5, AskVolume5, AveragePrice, ActionDay")
-                self.__file.writelines(header);
-        row = CThostFtdcDepthMarketDataField()
-        fields = [row.TradingDay, str(row.InstrumentId), str(row.ExchangeID), str(row.ExchangeInstID), str(row.LastPrice)]
-        fields.extend([str(row.PreSettlementPrice), str(row.PreClosePrice), str(row.PreOpenInterest), str(row.OpenPrice)])
-        fields.extend([str(row.HighestPrice), str(row.LowestPrice), str(row.Volume), str(row.Turnover), str(row.OpenInterest), str(row.ClosePrice)])
-        fields.extend([str(row.SettlementPrice), str(row.UpperLimitPrice), str(row.LowerLimitPrice), str(row.PreDelta), str(row.CurrDelta)])
-        fields.extend([row.UpdateTime, str(row.UpdateMillisec)])
-        fields.extend([str(row.BidPrice1), str(row.BidVolume1), str(row.AskPrice1), str(row.AskVolume1)])
-        fields.extend([str(row.BidPrice2), str(row.BidVolume2), str(row.AskPrice2), str(row.AskVolume2)])
-        fields.extend([str(row.BidPrice3), str(row.BidVolume3), str(row.AskPrice3), str(row.AskVolume3)])
-        fields.extend([str(row.BidPrice4), str(row.BidVolume4), str(row.AskPrice4), str(row.AskVolume4)])
-        fields.extend([str(row.BidPrice5), str(row.BidVolume5), str(row.AskPrice5), str(row.AskVolume5)])
-        fields.extend([str(row.AveragePrice), row.ActionDay])
-        self.__file.writelines(','.join(fields))
+                header = ("TradingDay,InstrumentID,ExchangeID,ExchangeInstID,UpdateMillisec,ActionDay," + 
+                          "LastPrice,PreSettlementPrice,PreClosePrice,PreOpenInterest,OpenPrice," +
+                          "HighestPrice,LowestPrice,Volume,Turnover,OpenInterest,ClosePrice," +
+                          "SettlementPrice,UpperLimitPrice,LowerLimitPrice,PreDelta,CurrDelta," +
+                          "BidPrice1,BidVolume1,AskPrice1,AskVolume1" +
+                          "BidPrice2,BidVolume2,AskPrice2,AskVolume2,BidPrice3,BidVolume3," +
+                          "AskPrice3,AskVolume3,BidPrice4,BidVolume4,AskPrice4,AskVolume4," +
+                          "BidPrice5,BidVolume5,AskPrice5,AskVolume5,AveragePrice")
+                self.__file.write(header + '\n');
+        #Data PreProcess
+        date = datetime.strptime(row.TradingDay, "%Y%m%d")
+        dateStr = date.strftime("%Y-%m-%d")
+        dateStr = dateStr + " " + row.UpdateTime
+        fields = [dateStr, row.InstrumentID, row.ExchangeID, row.ExchangeInstID, str(row.UpdateMillisec), row.ActionDay]
+        numbers = [row.LastPrice,row.PreSettlementPrice, row.PreClosePrice, row.PreOpenInterest, row.OpenPrice]
+        numbers.extend([row.HighestPrice, row.LowestPrice, row.Volume, row.Turnover, row.OpenInterest, row.ClosePrice])
+        numbers.extend([row.SettlementPrice, row.UpperLimitPrice, row.LowerLimitPrice, row.PreDelta, row.CurrDelta])
+        numbers.extend([row.BidPrice1, row.BidVolume1, row.AskPrice1, row.AskVolume1])
+        numbers.extend([row.BidPrice2, row.BidVolume2, row.AskPrice2, row.AskVolume2])
+        numbers.extend([row.BidPrice3, row.BidVolume3, row.AskPrice3, row.AskVolume3])
+        numbers.extend([row.BidPrice4, row.BidVolume4, row.AskPrice4, row.AskVolume4])
+        numbers.extend([row.BidPrice5, row.BidVolume5, row.AskPrice5, row.AskVolume5])
+        numbers.append(row.AveragePrice)
+        for i in range(len(numbers)):
+            if numbers[i] == sys.float_info.max:
+                numbers[i] = "-1"
+            else:
+                numbers[i] = str(numbers[i])
+        fields.extend(numbers)
+        self.__file.write(','.join(fields) + "\n")
+        self.__file.flush()
 
     def OnRtnDepthMarketData(self, *args):
+        
         logger.info("OnRtnDepthMarketData")
         logger.info("id: "+args[0].InstrumentID)
-        logger.info("TradingDay: " + args[0].TradingDay)
-        logger.info("UpdateTime: " + args[0].UpdateTime)
+        logger.info("TradingDay: " + args[0].TradingDay + " " + args[0].UpdateTime)
         logger.info("LastPrice: " + str(args[0].LastPrice))
-        logger.info("Volume: " + str(args[0].Volume))
         if self.__insertIntoMysql:
             if self.__mysqlCon == None:
                 self.__mysqlCon = client.mysqlConnection(CONSTANTS.HOST,
@@ -156,10 +167,11 @@ class Quote(CThostFtdcMdSpi):
                             RealTimeBar(dateStr,
                                         args[0].LastPrice,
                                         args[0].Volume))
-        
-
-            
-            
+        if self.__dumpToFile:
+            try:
+                self.dumpToFile(args[0])
+            except Exception as e:
+                print "except", e
         logger.info("OnRtnDepthMarketData End")
 
 
