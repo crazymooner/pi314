@@ -9,7 +9,10 @@ from pi.ibHelper.barfeed import RealTimeBar
 from optparse import OptionParser
 from pi import CONSTANTS
 from datetime import datetime, timedelta
+from pyalgotrade import bar
 
+def normalize_instrument(instrument):
+    return instrument.upper()
 
 def addBarIntoDB(cur, symbol, bar):
     string = ("INSERT INTO `pi314`.`data` (`symbol`, `date`, `open`, `close`, `high`, `low`, `volume`)" + 
@@ -90,6 +93,25 @@ class mysqlConnection:
                 next(reader, None)
             for row in reader:
                 self.addBar(row[1], RealTimeBar(row[2], row[3], row[7]))
+
+    def getBars(self, frequency, instrument, fromDateTime, toDateTime):
+        instrument = normalize_instrument(instrument)
+        sql = ("select bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume" +
+              " from {0:s} bar where bar.symbol = '{1:s}'" + 
+              " and date(bar.date) >= '{2:s}'" + 
+              " and date(bar.date) <= '{3:s}'" + 
+              " order by bar.date asc")
+        sql = sql.format(frequency + "_data", instrument, fromDateTime, toDateTime)
+        cursor = self.__cur
+        print sql
+        cursor.execute(sql)
+        ret = []
+        for row in cursor:
+            ret.append(bar.BasicBar(row[0],row[1],row[2],row[3],row[4],row[5],0,frequency))
+        cursor.close()
+        for i in ret:
+            print i.getClose()
+        return ret
 
     def dailyupdate(self, freq, filename, yesterday):
         if freq == 86400:

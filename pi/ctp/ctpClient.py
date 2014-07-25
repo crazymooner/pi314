@@ -120,7 +120,7 @@ class Quote(CThostFtdcMdSpi):
                           "LastPrice,PreSettlementPrice,PreClosePrice,PreOpenInterest,OpenPrice," +
                           "HighestPrice,LowestPrice,Volume,Turnover,OpenInterest,ClosePrice," +
                           "SettlementPrice,UpperLimitPrice,LowerLimitPrice,PreDelta,CurrDelta," +
-                          "BidPrice1,BidVolume1,AskPrice1,AskVolume1" +
+                          "BidPrice1,BidVolume1,AskPrice1,AskVolume1," +
                           "BidPrice2,BidVolume2,AskPrice2,AskVolume2,BidPrice3,BidVolume3," +
                           "AskPrice3,AskVolume3,BidPrice4,BidVolume4,AskPrice4,AskVolume4," +
                           "BidPrice5,BidVolume5,AskPrice5,AskVolume5,AveragePrice")

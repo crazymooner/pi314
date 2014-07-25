@@ -7,6 +7,7 @@ from optparse import OptionParser
 from pi.mysql.client import mysqlConnection
 from csv import DictReader
 from pi.ibHelper.barfeed import RealTimeBar
+from datetime import datetime, timedelta
 
 def get_options():
     parser = OptionParser()
@@ -15,7 +16,8 @@ def get_options():
     parser.add_option('-l', '--log', dest='logFilename', action='store',
         help='logFilename')
     parser.add_option('-t', '--datetime', dest='datetime', action='store',
-        help='datetime')
+                      default=(datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
+                      help='datetime')
     parser.add_option('-d', '--dailyETL', dest='dailyETL', default=False, action='store_true',
                       help='Dump from Dropbox file to DB')
     parser.add_option('-v', '--dailyViewETL', dest='dailyViewETL', default=False, action='store_true',
@@ -25,9 +27,8 @@ def get_options():
 
 def dailyEtl(options):
     con = mysqlConnection()
-    input_file = DictReader(open(options.filename, 'rb'))
+    input_file = DictReader(open(options.datetime + ".csv", 'rb'))
     for row in input_file:
-        print row
         symbol = row["InstrumentID"]
         bar = RealTimeBar(row["TradingDay"], row["LastPrice"], row["Volume"])
         con.addBar(symbol, bar)
