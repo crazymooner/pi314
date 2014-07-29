@@ -8,11 +8,12 @@ from pi.mysql.client import mysqlConnection
 from csv import DictReader
 from pi.ibHelper.barfeed import RealTimeBar
 from datetime import datetime, timedelta
+import traceback
 
 def get_options():
     parser = OptionParser()
-    parser.add_option('-f', '--filename', dest='filename', action='store',
-        help='filename')
+    parser.add_option('-f', '--filepath', dest='filepath', action='store',
+        help='file directory')
     parser.add_option('-l', '--log', dest='logFilename', action='store',
         help='logFilename')
     parser.add_option('-t', '--datetime', dest='datetime', action='store',
@@ -26,19 +27,47 @@ def get_options():
     return opts
 
 def dailyEtl(options):
-    con = mysqlConnection()
-    input_file = DictReader(open(options.datetime + ".csv", 'rb'))
-    for row in input_file:
-        symbol = row["InstrumentID"]
-        bar = RealTimeBar(row["TradingDay"], row["LastPrice"], row["Volume"])
-        con.addBar(symbol, bar)
+    try:
+        con = mysqlConnection()
+        #delete the given day's data first
+        deleteTime = datetime.strptime(options.datetime, "%Y-%m-%d") + timedelta(days=1)
+        deleteTime = deleteTime.strftime("%Y-%m-%d")
+        con.deleteDataFroDate(deleteTime)
+        con.addFromCSVFile(options.filepath + options.datetime + ".csv")
+        #log status
+        if dailyETLSanityCheck(options):
+            if options.logFilename is not None:
+                f = open(options.logFilename, 'a')
+                f.write("dailyETL finished " + options.datetime + "\n")
+    except Exception:
+        traceback.print_exc()
+        if options.logFilename is not None:
+            f = open(options.logFilename, 'a')
+            f.write("dailyETL failed " + options.datetime + "\n")
+
+def dailyETLSanityCheck(options):
+    return True
+
+def dailyViewETLSanityCheck(options):
+    return True
 
 def dailyViewEtl(options):
-    con = mysqlConnection()
-    con.dailyupdate(86400, options.logFilename, options.datetime)
-    con.dailyupdate(1800, options.logFilename, options.datetime)
-    con.dailyupdate(300, options.logFilename, options.datetime)
-    print "All ETLs DONE!!!" 
+    try:
+        con = mysqlConnection()
+        generateTime = datetime.strptime(options.datetime, "%Y-%m-%d") + timedelta(days=1)
+        generateTime = generateTime.strftime("%Y-%m-%d")
+        con.dailyupdate(86400, options.logFilename, generateTime)
+        con.dailyupdate(1800, options.logFilename, generateTime)
+        con.dailyupdate(300, options.logFilename, generateTime)
+        if dailyViewETLSanityCheck(options):
+            if options.logFilename is not None:
+                f = open(options.logFilename, 'a')
+                f.write("dailyViewETL finished " + options.datetime + "\n")
+    except Exception:
+        traceback.print_exc()
+        if options.logFilename is not None:
+            f = open(options.logFilename, 'a')
+            f.write("dailyViewETL failed " + options.datetime + "\n")
 
 if __name__ == '__main__':
     options = get_options()

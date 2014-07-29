@@ -10,6 +10,11 @@ from optparse import OptionParser
 from pi import CONSTANTS
 from datetime import datetime, timedelta
 from pyalgotrade import bar
+from csv import DictReader
+from pyalgotrade import logger
+
+logger = logger.getLogger("mysqlconnection")
+
 
 def normalize_instrument(instrument):
     return instrument.upper()
@@ -62,7 +67,7 @@ def dumpFromFile(options):
                 con.commit()
                 print "dump ",count," lines"
     con.commit()
-    print "dump ",count," lines in DB"
+    logger.info("dump " + str(count) + " lines in DB")
 
 
 if __name__ == '__main__':
@@ -75,24 +80,36 @@ class mysqlConnection:
                  username=CONSTANTS.USERNAME, 
                  password=CONSTANTS.PASSWORD, 
                  database=CONSTANTS.DATABASE):
-        self.con = MySQLdb.Connect(host, username, password, database)
-        self.__cur = self.con.cursor()
+        self.__con = MySQLdb.Connect(host, username, password, database)
+        self.__cur = self.__con.cursor()
 
-    def addBar(self, symbol, bar):
+    def getConnection(self):
+        return self.__con
+
+    def __addBar(self, symbol, bar):
         string = ("INSERT INTO data (`symbol`, `date`, `open`, `close`, `high`, `low`, `volume`) " + 
                   "VALUES ('{0:s}', '{1:%Y-%m-%d %H:%M:%S}', '{2:f}', '{2:f}', '{2:f}', '{2:f}', '{3:f}')")
         queryStr = string.format(symbol, bar.getDateTime(), bar.getClose(), bar.getVolume())
-        print queryStr
         self.__cur.execute(queryStr)
-        self.con.commit()
 
-    def addFromCSVFile(self, filename, header=True):
-        with open(filename, 'rb') as csvfile:
-            reader = csv.reader(csvfile)
-            if header:
-                next(reader, None)
-            for row in reader:
-                self.addBar(row[1], RealTimeBar(row[2], row[3], row[7]))
+    def addFromCSVFile(self, filename):
+        input_file = DictReader(open(filename, 'rb'))
+        count = 0
+        for row in input_file:
+            symbol = row["InstrumentID"]
+            bar = RealTimeBar(row["TradingDay"], row["LastPrice"], row["Volume"])
+            if count%1000 == 0:
+                logger.info("dump " + str(count) + " rows")
+            self.__addBar(symbol, bar)
+            count = count + 1
+        self.__con.commit()
+
+    def deleteDataFroDate(self, date):
+        query = "delete from data where date(date) >= '{0:s}' and date(date) <= '{0:s}'"
+        query = query.format(date)
+        logger.info(query)
+        self.__cur.execute(query)
+        self.__con.commit()
 
     def getBars(self, frequency, instrument, fromDateTime, toDateTime):
         instrument = normalize_instrument(instrument)
@@ -103,7 +120,7 @@ class mysqlConnection:
               " order by bar.date asc")
         sql = sql.format(frequency + "_data", instrument, fromDateTime, toDateTime)
         cursor = self.__cur
-        print sql
+        logger.info(sql)
         cursor.execute(sql)
         ret = []
         for row in cursor:
@@ -133,7 +150,7 @@ class mysqlConnection:
         #last_full_date = last_full_date.strftime("%Y-%m-%d")
 
         cleanup_qry_text = ("""DELETE FROM %s WHERE date(date) = '%s'""" % (final_table, yesterday))
-        print cleanup_qry_text
+        logger.info(cleanup_qry_text)
         self.__cur.execute(cleanup_qry_text)
 
         insert_qry_text = ("""INSERT INTO %s (symbol, date, open, close, high, low, volume) 
@@ -153,8 +170,8 @@ class mysqlConnection:
                                 on t0.symbol = t2.symbol and t0.min_ts = t2.date group by 1,2""" 
                                 % (final_table, freq, freq, yesterday, yesterday, yesterday))
         self.__cur.execute(insert_qry_text)
-        print insert_qry_text
-        self.con.commit()
+        logger.info(insert_qry_text)
+        self.__con.commit()
         text_file = open(filename, "a")
         text_file.writelines("Job %s started at: %s, completed at: %s with last_full_date: %s \n" % (final_table, start_time, datetime.now() , yesterday))
         text_file.close()
