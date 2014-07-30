@@ -30,6 +30,6 @@ class MysqlFeed(membf.BarFeed):
         bars = self.__db.getBars(self.getFrequency(), instrument, fromDateTime, toDateTime)
         self.addBarsFromSequence(instrument, bars)
 
-
-feed = MysqlFeed("5mins")
-feed.loadBars("IF1408", "2014-07-01", "2014-07-20")
+if __name__ == '__main__':
+    feed = MysqlFeed("5mins")
+    feed.loadBars("IF1408", "2014-07-01", "2014-07-20")
