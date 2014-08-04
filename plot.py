@@ -11,7 +11,9 @@ from pyalgotrade.technical import ma
 from pyalgotrade.technical import cross
 from pyalgotrade import plotter
 from pyalgotrade.stratanalyzer import returns
-
+from pyalgotrade.stratanalyzer import sharpe
+from pyalgotrade.stratanalyzer import drawdown
+from pyalgotrade.stratanalyzer import trades
 
 class Strategy(strategy.BacktestingStrategy):
 
@@ -61,6 +63,12 @@ if __name__ == '__main__':
     # Attach a returns analyzers to the strategy.
     returnsAnalyzer = returns.Returns()
     myStrategy.attachAnalyzer(returnsAnalyzer)
+    sharpeRatioAnalyzer = sharpe.SharpeRatio()
+    myStrategy.attachAnalyzer(sharpeRatioAnalyzer)
+    drawDownAnalyzer = drawdown.DrawDown()
+    myStrategy.attachAnalyzer(drawDownAnalyzer)
+    tradesAnalyzer = trades.Trades()
+    myStrategy.attachAnalyzer(tradesAnalyzer)
 
     # Attach the plotter to the strategy.
     plt = plotter.StrategyPlotter(myStrategy)
@@ -72,10 +80,58 @@ if __name__ == '__main__':
         "Net return", returnsAnalyzer.getReturns())
     plt.getOrCreateSubplot("returns").addDataSeries(
         "Cum. return", returnsAnalyzer.getCumulativeReturns())
+    #plt.getOrCreateSubplot("drawdown").addDataSeries(
+    #    "Max. drawdown", drawDownAnalyzer.getMaxDrawDown())
 
     # Run the strategy.
     myStrategy.run()
     myStrategy.info("Final portfolio value: $%.2f" % myStrategy.getResult())
+    myStrategy.info("Cumulative returns: %.2f %%" % (returnsAnalyzer.getCumulativeReturns()[-1] * 100))
+    myStrategy.info("Sharpe ratio: %.2f" % (sharpeRatioAnalyzer.getSharpeRatio(0.05)))
+    myStrategy.info("Max. drawdown: %.2f %%" % (drawDownAnalyzer.getMaxDrawDown() * 100))
+    myStrategy.info("Longest drawdown duration: %s" % (drawDownAnalyzer.getLongestDrawDownDuration()))
+
+    print
+    print "Total trades: %d" % (tradesAnalyzer.getCount())
+    if tradesAnalyzer.getCount() > 0:
+        profits = tradesAnalyzer.getAll()
+        print "Avg. profit: $%2.f" % (profits.mean())
+        print "Profits std. dev.: $%2.f" % (profits.std())
+        print "Max. profit: $%2.f" % (profits.max())
+        print "Min. profit: $%2.f" % (profits.min())
+        returns = tradesAnalyzer.getAllReturns()
+        print "Avg. return: %2.f %%" % (returns.mean() * 100)
+        print "Returns std. dev.: %2.f %%" % (returns.std() * 100)
+        print "Max. return: %2.f %%" % (returns.max() * 100)
+        print "Min. return: %2.f %%" % (returns.min() * 100)
+
+    print
+    print "Profitable trades: %d" % (tradesAnalyzer.getProfitableCount())
+    if tradesAnalyzer.getProfitableCount() > 0:
+        profits = tradesAnalyzer.getProfits()
+        print "Avg. profit: $%2.f" % (profits.mean())
+        print "Profits std. dev.: $%2.f" % (profits.std())
+        print "Max. profit: $%2.f" % (profits.max())
+        print "Min. profit: $%2.f" % (profits.min())
+        returns = tradesAnalyzer.getPositiveReturns()
+        print "Avg. return: %2.f %%" % (returns.mean() * 100)
+        print "Returns std. dev.: %2.f %%" % (returns.std() * 100)
+        print "Max. return: %2.f %%" % (returns.max() * 100)
+        print "Min. return: %2.f %%" % (returns.min() * 100)
+    
+    print
+    print "Unprofitable trades: %d" % (tradesAnalyzer.getUnprofitableCount())
+    if tradesAnalyzer.getUnprofitableCount() > 0:
+        losses = tradesAnalyzer.getLosses()
+        print "Avg. loss: $%2.f" % (losses.mean())
+        print "Losses std. dev.: $%2.f" % (losses.std())
+        print "Max. loss: $%2.f" % (losses.min())
+        print "Min. loss: $%2.f" % (losses.max())
+        returns = tradesAnalyzer.getNegativeReturns()
+        print "Avg. return: %2.f %%" % (returns.mean() * 100)
+        print "Returns std. dev.: %2.f %%" % (returns.std() * 100)
+        print "Max. return: %2.f %%" % (returns.max() * 100)
+        print "Min. return: %2.f %%" % (returns.min() * 100)
 
     # Plot the strategy.
     plt.plot()
