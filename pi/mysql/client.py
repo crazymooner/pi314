@@ -156,22 +156,22 @@ class mysqlConnection:
         insert_qry_text = """INSERT INTO {0:s} (symbol, date, open, close, high, low, volume) 
                                 select t0.symbol, t0.new_date date, avg(t2.open) open, avg(t1.close) close, avg(t0.high) high, 
                                 avg(t0.low) low, avg(t0.volume) volume 
-                                from (select data.symbol symbol,from_unixtime((floor((unix_timestamp(data.date) / {1:d})) * {2:d}){3:s}) new_date, 
+                                from (select data.symbol symbol,from_unixtime((floor((unix_timestamp(data.date) / {1:d})) * {1:d}){2:s}) new_date, 
                                         max(data.high) high, min(data.low) low, max(data.date) max_ts, min(data.date) min_ts, 
                                         avg(data.volume) volume 
-                                        from data where date(date) = '{4:%Y-%m-%d}' group by 1,2) t0 
+                                        from data where date(date) = '{3:s}' group by 1,2) t0 
                                 join 
-                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) = '{5:%Y-%m-%d}' 
+                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) = '{3:s}' 
                                     group by 1,2) t1 
                                 on t0.symbol = t1.symbol and t0.max_ts = t1.date 
                                 join 
-                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) = '{6:%Y-%m-%d}' 
+                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) = '{3:s}' 
                                     group by 1,2) t2 
                                 on t0.symbol = t2.symbol and t0.min_ts = t2.date group by 1,2""" 
         if freq == CONSTANTS.ONE_DAY:
-            insert_qry_text = insert_qry_text.format(final_table, freq, freq, '+8*3600', yesterday, yesterday, yesterday)
+            insert_qry_text = insert_qry_text.format(final_table, freq, '+8*3600', yesterday)
         else:
-            insert_qry_text = insert_qry_text.format(final_table, freq, freq,'', yesterday, yesterday, yesterday)
+            insert_qry_text = insert_qry_text.format(final_table, freq, '', yesterday)
         self.__cur.execute(insert_qry_text)
         logger.info(insert_qry_text)
         self.__con.commit()
