@@ -130,6 +130,44 @@ class mysqlConnection:
             print i.getClose()
         return ret
 
+    def backFill(self, freq,filename, startDate, endDate):
+        if freq == 86400:
+            final_table = "1day_data"
+        elif freq == 1800:
+            final_table = "30mins_data"
+        elif freq == 300:
+            final_table = "5mins_data"
+        
+        cleanup_qry_text = ("""DELETE FROM %s WHERE date(date) >= '%s' and date(date) <= '%s'""" % (final_table, startDate, endDate))
+        logger.info(cleanup_qry_text)
+        self.__cur.execute(cleanup_qry_text)
+
+        insert_qry_text = """INSERT INTO {0:s} (symbol, date, open, close, high, low, volume) 
+                                select t0.symbol, t0.new_date date, avg(t2.open) open, avg(t1.close) close, avg(t0.high) high, 
+                                avg(t0.low) low, avg(t0.volume) volume 
+                                from (select data.symbol symbol,from_unixtime((floor((unix_timestamp(data.date) / {1:d})) * {1:d}){2:s}) new_date, 
+                                        max(data.high) high, min(data.low) low, max(data.date) max_ts, min(data.date) min_ts, 
+                                        avg(data.volume) volume 
+                                        from data where date(date) >= '{3:s}' and date(date) <= '{4:s}' group by 1,2) t0 
+                                join 
+                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) >= '{3:s}' and date(date) <= '{4:s}' 
+                                    group by 1,2) t1 
+                                on t0.symbol = t1.symbol and t0.max_ts = t1.date 
+                                join 
+                                    (select symbol, date, avg(data.close) close, avg(data.open) open from data where date(date) >= '{3:s}' and date(date) <= '{4:s}' 
+                                    group by 1,2) t2 
+                                on t0.symbol = t2.symbol and t0.min_ts = t2.date group by 1,2""" 
+        if freq == CONSTANTS.ONE_DAY:
+            insert_qry_text = insert_qry_text.format(final_table, freq, '+8*3600', startDate, endDate)
+        else:
+            insert_qry_text = insert_qry_text.format(final_table, freq, '', startDate, endDate)
+        logger.info(insert_qry_text)
+        self.__cur.execute(insert_qry_text)
+        self.__con.commit()
+        text_file = open(filename, "a")
+        text_file.writelines("Back fill job %s started at: %s, complete at: %s , end date %s\n" % (final_table, startDate, datetime.now(), endDate))
+        text_file.close()
+        
     def dailyupdate(self, freq, filename, yesterday):
         if freq == 86400:
             final_table = "1day_data"
@@ -148,7 +186,7 @@ class mysqlConnection:
         
         #last_full_date = datetime.strptime(last_updated_date[0], "%Y-%m-%d") - timedelta(1)
         #last_full_date = last_full_date.strftime("%Y-%m-%d")
-
+        
         cleanup_qry_text = ("""DELETE FROM %s WHERE date(date) = '%s'""" % (final_table, yesterday))
         logger.info(cleanup_qry_text)
         self.__cur.execute(cleanup_qry_text)

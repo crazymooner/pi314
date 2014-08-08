@@ -77,19 +77,25 @@ def dailyViewEtl(options):
             f = open(options.logFilename, 'a')
             f.write("dailyViewETL failed " + options.datetime + "\n")
 
+def backFill(options):
+    try:
+        con = mysqlConnection()
+        con.backFill(86400, options.logFilename, options.startdate, options.enddate)
+        con.backFill(1800, options.logFilename, options.startdate, options.enddate)
+        con.backFill(300, options.logFilename, options.startdate, options.enddate)
+        if options.logFilename is not None:
+            f = open(options.logFilename, 'a')
+            f.write("Back fill finished at %s\n" % (datetime.now()))
+    except Exception:
+        traceback.print_exc()
+        if options.logFilename is not None:
+            f = open(options.logFilename, 'a')
+            f.write("Back fill failed at %s\n" % (datetime.now()))
+
 if __name__ == '__main__':
     options = get_options()
     if options.startdate is not None and options.enddate is not None:
-        start = datetime.strptime(options.startdate, "%Y-%m-%d")
-        end = datetime.strptime(options.enddate, "%Y-%m-%d")
-        while start <= end:
-            optionCopy = copy.deepcopy(options)
-            optionCopy.datetime = start.strftime("%Y-%m-%d")
-            start = start + timedelta(days=1)
-            if options.dailyETL:
-                dailyEtl(optionCopy)
-            if options.dailyViewETL:
-                dailyViewEtl(optionCopy)
+        backFill(options)
     else:
         if options.dailyETL:
             dailyEtl(options)
