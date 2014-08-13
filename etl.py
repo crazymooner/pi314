@@ -37,20 +37,20 @@ def dailyEtl(options):
         #delete the given day's data first
         deleteTime = datetime.strptime(options.datetime, "%Y-%m-%d") + timedelta(days=1)
         deleteTime = deleteTime.strftime("%Y-%m-%d")
-        con.deleteDataFroDate(deleteTime)
+        con.deleteDataFromDate(deleteTime)
         con.addFromCSVFile(options.filepath + options.datetime + ".csv")
         #log status
         if dailyETLSanityCheck(options):
             if options.logFilename is not None:
                 f = open(options.logFilename, 'a')
                 f.write("\n********************************************\n")
-                f.write("dailyETL finished " + options.datetime + "\n")
+                f.write("dailyETL finished " + options.datetime + "\n at %s" % (datetime.now()))
     except Exception:
         traceback.print_exc()
         if options.logFilename is not None:
             f = open(options.logFilename, 'a')
             f.write("\n********************************************\n")
-            f.write("dailyETL failed " + options.datetime + "\n")
+            f.write("dailyETL failed " + options.datetime + "\n at %s" % (datetime.now()))
 
 def dailyETLSanityCheck(options):
     #symbol count(*) 
