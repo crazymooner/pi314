@@ -1,5 +1,5 @@
 #mysql
-HOST = "192.168.0.156"
+HOST = "10.8.0.23"
 USERNAME = "root"
 PASSWORD = "314159"
 DATABASE = "pi314"
