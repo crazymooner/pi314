@@ -7,6 +7,7 @@ from pyalgotrade.stratanalyzer import returns
 from pyalgotrade.stratanalyzer import sharpe
 from pyalgotrade.stratanalyzer import drawdown
 from pyalgotrade.stratanalyzer import trades
+from pyalgotrade.feed import feed_iterator
 
 '''
 class MyStrategy(strategy.BacktestingStrategy):
@@ -64,6 +65,9 @@ class MyStrategy(strategy.BacktestingStrategy):
     def getSMA(self):
         return self.__sma
 
+    def getPosition(self):
+        return self.__position
+
     def onBars(self, bars):
         # Wait for enough bars to be available to calculate a SMA.
         if self.__sma[-1] is None:
@@ -80,14 +84,22 @@ class MyStrategy(strategy.BacktestingStrategy):
         elif bar.getClose() < self.__sma[-1]:
             self.__position.exitMarket()
 
+    def getClosePrice(self):
+        ds = self.getFeed()
+        return ds[self.__instrument].getCloseDataSeries();
+
+    def getDateTime(self):
+        ds = self.getFeed()
+        return ds[self.__instrument].getDateTimes();
+
 def run_strategy(smaPeriod):
     # Load the mysql feed from mysql database
     feed = MysqlFeed("30mins")
-    feed.loadBars("IF1408", "2014-07-15", "2014-07-23")
+    feed.loadBars("IF1408", "2014-07-28", "2014-08-16")
 
     # Evaluate the strategy with the feed.
     myStrategy = MyStrategy(feed, "IF1408", smaPeriod)
-    
+
     # Attach a returns analyzers to the strategy.
     returnsAnalyzer = returns.Returns()
     myStrategy.attachAnalyzer(returnsAnalyzer)
@@ -110,6 +122,27 @@ def run_strategy(smaPeriod):
     print "Final portfolio value: $%.2f" % myStrategy.getBroker().getEquity()
     myStrategy.info("Final portfolio value: $%.2f" % myStrategy.getResult())
     myStrategy.info("Cumulative returns: %.2f %%" % (returnsAnalyzer.getCumulativeReturns()[-1] * 100))
+    aaa = returnsAnalyzer.getCumulativeReturns()
+    print "aaa length is: %s" % len(aaa)
+    for index in range(len(aaa)):
+        print "haha: %s" % aaa[index]
+    bbb = myStrategy.getSMA()
+    print "bbb length is: %s" % len(bbb)
+    for index in range(len(bbb)):
+        print "lala: %s" % bbb[index]
+    ccc = returnsAnalyzer.getReturns()
+    print "ccc length is: %s" % len(ccc)
+    for index in range(len(ccc)):
+        print "kaka: %s" % ccc[index]
+    ddd = myStrategy.getClosePrice()
+    print "ddd length is: %s" % len(ddd)
+    for index in range(len(ddd)):
+        print "papa: %s" % ddd[index]
+    eee = myStrategy.getDateTime()
+    print "eee length is: %s" % len(eee)
+    for index in range(len(eee)):
+        print "sasa: %s" % eee[index]
+
     myStrategy.info("Sharpe ratio: %.2f" % (sharpeRatioAnalyzer.getSharpeRatio(0.05)))
     myStrategy.info("Max. drawdown: %.2f %%" % (drawDownAnalyzer.getMaxDrawDown() * 100))
     myStrategy.info("Longest drawdown duration: %s" % (drawDownAnalyzer.getLongestDrawDownDuration()))
@@ -158,4 +191,4 @@ def run_strategy(smaPeriod):
     plt.plot()
 
 if __name__ == '__main__':
-    run_strategy(3)
+    run_strategy(20)
